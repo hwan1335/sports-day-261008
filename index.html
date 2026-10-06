@@ -214,7 +214,7 @@ footer{padding-bottom:110px}
 .editbar.on .mode{background:var(--track);border-color:var(--track);color:#fff}
 .editbar .small{flex:1 1 auto}
 .editbar button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 14px;font-size:.88rem;font-weight:700}
-.editbar input{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 10px;font:inherit;width:150px;min-width:0}
+.editbar input{-webkit-text-security:disc;text-security:disc;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 10px;font:inherit;width:150px;min-width:0}
 .editbar form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .err{color:var(--crit);font-size:.84rem}
 .pick button:disabled,.rk button:disabled{cursor:default}
@@ -351,7 +351,7 @@ footer{padding-block:36px 48px;color:var(--muted);font-size:.82rem}
       <span class="mode" id="mode">조회 전용</span>
       <span class="small" id="sync"></span>
       <button type="button" id="editBtn">점수 편집</button>
-      <form id="pwform" hidden><input type="password" id="pw" placeholder="편집 비밀번호" autocomplete="off" aria-label="편집 비밀번호"><button type="submit">확인</button><span class="err" id="pwerr"></span></form>
+      <form id="pwform" hidden><input type="text" id="pw" placeholder="편집 비밀번호" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="편집 비밀번호"><button type="submit">확인</button><span class="err" id="pwerr"></span></form>
     </div>
     <div class="rope">
       <div class="score-n b num"><small>청팀</small><span id="sb">0</span></div>
