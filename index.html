@@ -208,6 +208,17 @@ td.pn{font-family:var(--f-num);font-weight:600;font-size:1.05rem}
 .mini .ml span:first-child{color:var(--blue)}
 @media (max-width:480px){.mini{width:136px;padding:6px 10px 8px}.mini .mr{font-size:1.4rem}}
 footer{padding-bottom:110px}
+
+.editbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--line)}
+.editbar .mode{font-weight:700;font-size:.82rem;border-radius:99px;padding:1px 12px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.editbar.on .mode{background:var(--track);border-color:var(--track);color:#fff}
+.editbar .small{flex:1 1 auto}
+.editbar button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 14px;font-size:.88rem;font-weight:700}
+.editbar input{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 10px;font:inherit;width:150px;min-width:0}
+.editbar form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.err{color:var(--crit);font-size:.84rem}
+.pick button:disabled,.rk button:disabled{cursor:default}
+.board.ro .pick button:not([aria-pressed="true"]),.board.ro .rk button:not(.b):not(.w){opacity:.55}
 /* people */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
 .panel h3{margin-bottom:10px}
@@ -334,8 +345,14 @@ footer{padding-block:36px 48px;color:var(--muted);font-size:.82rem}
 </section>
 
 <section id="score">
-  <div class="sec-head"><h2>종합 점수판</h2><span class="sub">경기 결과를 누르면 점수가 합산됩니다 (이 기기에만 저장)</span></div>
+  <div class="sec-head"><h2>종합 점수판</h2><span class="sub" id="scoresub">경기 결과를 누르면 점수가 합산됩니다 (이 기기에만 저장)</span></div>
   <div class="board">
+    <div class="editbar" id="editbar" hidden>
+      <span class="mode" id="mode">조회 전용</span>
+      <span class="small" id="sync"></span>
+      <button type="button" id="editBtn">점수 편집</button>
+      <form id="pwform" hidden><input type="password" id="pw" placeholder="편집 비밀번호" autocomplete="off" aria-label="편집 비밀번호"><button type="submit">확인</button><span class="err" id="pwerr"></span></form>
+    </div>
     <div class="rope">
       <div class="score-n b num"><small>청팀</small><span id="sb">0</span></div>
       <div><div class="meter" aria-hidden="true"><div class="bb" id="bar"></div></div><div class="leader" id="leader"></div></div>
@@ -346,7 +363,7 @@ footer{padding-block:36px 48px;color:var(--muted);font-size:.82rem}
       <button type="button" id="demo">예시 점수 채우기</button>
       <button type="button" id="reset">전체 초기화</button>
     </div>
-    <p class="small">동점이면 ① 줄다리기 ② 이어 달리기 점수 순으로 순위를 정합니다. 단거리 달리기와 이어 달리기는 학년·성별 경기마다 청팀의 등수 2개를 고르면 배점표대로 점수가 들어갑니다. 백팀 등수를 다시 누르면 청팀과 백팀이 바뀝니다.</p>
+    <p class="small">동점이면 ① 줄다리기 ② 이어 달리기 점수 순으로 순위를 정합니다. 단거리 달리기는 학년·성별 경기마다, 이어 달리기는 1~3학년이 이어서 하는 한 경기로, 청팀의 등수 2개를 고르면 배점표대로 점수가 들어갑니다. 백팀 등수를 다시 누르면 청팀과 백팀이 바뀝니다.</p>
   </div>
   <div class="two">
     <div>
@@ -546,17 +563,20 @@ $('#evfilter').addEventListener('click',function(ev){
 });
 
 /* scoreboard */
-var RACES=['1여','1남','2여','2남','3여','3남'];
+/* 구글 앱스 스크립트 웹앱 주소를 넣으면 여러 사람이 같은 점수를 실시간으로 봅니다. 비워 두면 이 기기에만 저장됩니다. */
+var API_URL="https://script.google.com/macros/s/AKfycbwXi6ranqp49brwxtJJfu4nb0s8voh-2PJO9pQSr_J8sCNunK1Zg1NWsVxi-dfS4kt-gg/exec";
+var R6=['1여','1남','2여','2남','3여','3남'];
 var SC=[
- {id:'sprint',n:'단거리 달리기',sub:'학년별 남·여 6개 경기',type:'race',p:[100,80,60,40]},
+ {id:'sprint',n:'단거리 달리기',sub:'학년별 남·여 6개 경기',type:'race',p:[100,80,60,40],keys:R6},
  {id:'soccer',n:'축구',sub:'남',type:'win',p:[200,160]},
  {id:'kick',n:'발야구',sub:'여',type:'win',p:[200,160]},
  {id:'volley',n:'배구',sub:'남',type:'win',p:[200,160]},
  {id:'dodge',n:'피구',sub:'여',type:'win',p:[200,160]},
  {id:'tug',n:'줄다리기',sub:'',type:'win',p:[180,150]},
- {id:'relay',n:'이어 달리기',sub:'학년별 남·여 6개 경기',type:'race',p:[150,120,90,60]}
+ {id:'relay',n:'이어 달리기',sub:'1~3학년 이어서 1경기',type:'race',p:[150,120,90,60],keys:['all']}
 ];
-var state=store('hanmadang-score')||{};
+var remote=!!API_URL,canEdit=!remote,pw='',pending=0,rev=-1;
+var state=remote?{}:(store('hanmadang-score')||{});
 function racePts(e,sel){
   if(!Array.isArray(sel)||sel.length!==2)return[0,0];
   var b=0,w=0;for(var r=1;r<=4;r++){if(sel.indexOf(r)>-1)b+=e.p[r-1];else w+=e.p[r-1]}return[b,w];
@@ -564,29 +584,33 @@ function racePts(e,sel){
 function pts(e){
   var v=state[e.id];
   if(e.type==='win'){if(v==='b')return[e.p[0],e.p[1]];if(v==='w')return[e.p[1],e.p[0]];return[0,0]}
-  var b=0,w=0;RACES.forEach(function(k){var p=racePts(e,(v||{})[k]);b+=p[0];w+=p[1]});return[b,w];
+  var b=0,w=0;e.keys.forEach(function(k){var p=racePts(e,(v||{})[k]);b+=p[0];w+=p[1]});return[b,w];
 }
+function rlabel(k){return k==='all'?'1~3학년':k[0]+'학년 '+k[1]}
 function raceHtml(e){
-  var v=state[e.id]||{};
-  return '<div class="race"><div class="small">청팀이 차지한 등수 2개를 누르세요. 나머지 2개 등수는 백팀 점수가 됩니다.</div>'+RACES.map(function(k){
+  var v=state[e.id]||{},dis=canEdit?'':' disabled';
+  return '<div class="race"><div class="small">청팀이 차지한 등수 2개를 누르세요. 나머지 2개 등수는 백팀 점수가 됩니다.</div>'+e.keys.map(function(k){
     var sel=Array.isArray(v[k])?v[k]:[],p=racePts(e,sel),full=sel.length===2;
     var btn=[1,2,3,4].map(function(r){
       var c=sel.indexOf(r)>-1?'b':(full?'w':'');
-      return '<button type="button" class="'+c+'" data-id="'+e.id+'" data-r="'+k+'" data-k="'+r+'" aria-pressed="'+(c==='b')+'" aria-label="'+k[0]+'학년 '+(k[1]==='여'?'여학생':'남학생')+' '+r+'등"><b>'+r+'등</b><small>'+e.p[r-1]+'</small></button>';
+      return '<button type="button" class="'+c+'"'+dis+' data-id="'+e.id+'" data-r="'+k+'" data-k="'+r+'" aria-pressed="'+(c==='b')+'" aria-label="'+rlabel(k)+' '+r+'등"><b>'+r+'등</b><small>'+e.p[r-1]+'</small></button>';
     }).join('');
-    return '<div class="rr"><span class="rl">'+k[0]+'학년 '+k[1]+'</span><div class="rk">'+btn+'</div><span class="rp num"><span class="gb">'+p[0]+'</span> · <span class="gw">'+p[1]+'</span></span></div>';
+    return '<div class="rr"><span class="rl">'+rlabel(k)+'</span><div class="rk">'+btn+'</div><span class="rp num"><span class="gb">'+p[0]+'</span> · <span class="gw">'+p[1]+'</span></span></div>';
   }).join('')+'</div>';
 }
 function drawScore(){
+  var dis=canEdit?'':' disabled';
+  $('.board').classList.toggle('ro',!canEdit);
   $('#srows').innerHTML=SC.map(function(e){
     var p=pts(e),v=state[e.id],pick,extra='';
-    if(e.type==='win')pick='<div class="pick"><button type="button" class="b" data-id="'+e.id+'" data-w="b" aria-pressed="'+(v==='b')+'">청팀 승</button><button type="button" class="w" data-id="'+e.id+'" data-w="w" aria-pressed="'+(v==='w')+'">백팀 승</button></div>';
+    if(e.type==='win')pick='<div class="pick"><button type="button" class="b"'+dis+' data-id="'+e.id+'" data-w="b" aria-pressed="'+(v==='b')+'">청팀 승</button><button type="button" class="w"'+dis+' data-id="'+e.id+'" data-w="w" aria-pressed="'+(v==='w')+'">백팀 승</button></div>';
     else{
-      var n=RACES.filter(function(k){return v&&Array.isArray(v[k])&&v[k].length===2}).length;
-      pick='<div class="small">입력 <b class="num" style="color:var(--ink)">'+n+'</b> / 6 경기</div>';extra=raceHtml(e);
+      var n=e.keys.filter(function(k){return v&&Array.isArray(v[k])&&v[k].length===2}).length;
+      pick='<div class="small">입력 <b class="num" style="color:var(--ink)">'+n+'</b> / '+e.keys.length+' 경기</div>';extra=raceHtml(e);
     }
     return '<div><div class="srow"><div class="nm">'+e.n+(e.sub?'<small>'+e.sub+'</small>':'')+'</div>'+pick+'<div class="got num"><span class="gb">'+p[0]+'</span><span class="gw">'+p[1]+'</span></div></div>'+extra+'</div>';
   }).join('');
+  $('#demo').hidden=remote;$('#reset').hidden=!canEdit;
   sum();
 }
 function sum(){
@@ -605,26 +629,81 @@ function sum(){
   $('#mb').textContent=b;$('#mw').textContent=w;$('#mbar').style.width=(tot?b/tot*100:50)+'%';
   $('#mleader').textContent=!tot?'':(b===w?'동점':(b>w?'청 앞섬':'백 앞섬'));
 }
+/* 서버 통신 */
+function call(body){
+  return fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(function(r){return r.json()});
+}
+function stamp(t){var d=t?new Date(t):new Date();function z(n){return (n<10?'0':'')+n}return z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds())}
+function applyRemote(d){
+  if(!d||!d.ok)return;
+  if(d.rev!==rev){rev=d.rev;state=d.state||{};drawScore()}
+  $('#sync').textContent='실시간 연결됨 · '+stamp()+' 확인';
+}
+function poll(){
+  if(!remote||pending||document.hidden)return;
+  fetch(API_URL+(API_URL.indexOf('?')>-1?'&':'?')+'t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){if(!pending)applyRemote(d)}).catch(function(){$('#sync').textContent='연결 확인 중… 잠시 후 다시 시도합니다'});
+}
+function commit(id,key,val){
+  if(!canEdit)return;
+  if(key){var o=state[id];if(!o||typeof o!=='object'||Array.isArray(o))o=state[id]={};o[key]=val}else state[id]=val;
+  drawScore();
+  if(!remote){store('hanmadang-score',state);return}
+  pending++;$('#sync').textContent='저장 중…';
+  call({pw:pw,op:'set',id:id,key:key||null,value:val}).then(function(d){
+    pending--;
+    if(d&&d.error==='auth'){setEdit(false);$('#pwerr').textContent='비밀번호가 바뀌었습니다. 다시 입력하세요.';return}
+    if(!pending)applyRemote(d);
+  }).catch(function(){pending--;$('#sync').textContent='저장하지 못했습니다. 연결을 확인하세요'});
+}
+function setEdit(on){
+  canEdit=on;$('#editbar').classList.toggle('on',on);
+  $('#mode').textContent=on?'편집 중':'조회 전용';
+  $('#editBtn').textContent=on?'편집 종료':'점수 편집';
+  $('#pwform').hidden=true;
+  if(!on){pw='';try{sessionStorage.removeItem('hm-pw')}catch(e){}}
+  drawScore();
+}
 $('#srows').addEventListener('click',function(ev){
-  var b=ev.target.closest('button[data-id]');if(!b)return;
+  var b=ev.target.closest('button[data-id]');if(!b||b.disabled)return;
   var id=b.dataset.id;
   if(b.dataset.r){
-    var o=state[id];if(!o||typeof o!=='object'||Array.isArray(o))o=state[id]={};
-    var sel=Array.isArray(o[b.dataset.r])?o[b.dataset.r].slice():[],k=+b.dataset.k,i=sel.indexOf(k);
+    var o=state[id],sel=(o&&Array.isArray(o[b.dataset.r]))?o[b.dataset.r].slice():[],k=+b.dataset.k,i=sel.indexOf(k);
     if(i>-1)sel.splice(i,1);
-    else if(sel.length===2){
-      /* 백팀으로 표시된 등수를 누르면 청팀과 백팀을 맞바꿈 */
-      sel=[1,2,3,4].filter(function(r){return sel.indexOf(r)===-1});
-    }else sel.push(k);
-    o[b.dataset.r]=sel;
-  }else state[id]=state[id]===b.dataset.w?null:b.dataset.w;
-  store('hanmadang-score',state);drawScore();
+    else if(sel.length===2){sel=[1,2,3,4].filter(function(r){return sel.indexOf(r)===-1})}
+    else sel.push(k);
+    commit(id,b.dataset.r,sel);
+  }else commit(id,null,state[id]===b.dataset.w?null:b.dataset.w);
 });
 $('#demo').addEventListener('click',function(){
-  state={soccer:'b',volley:'w',kick:'b',dodge:'w',sprint:{'1여':[1,3],'1남':[2,4],'2여':[1,2],'2남':[3,4],'3여':[2,3],'3남':[1,4]},relay:{'1여':[1,4],'1남':[2,3],'2여':[1,3],'2남':[2,4],'3여':[1,2],'3남':[3,4]},tug:'b'};store('hanmadang-score',state);drawScore();
+  state={soccer:'b',volley:'w',kick:'b',dodge:'w',sprint:{'1여':[1,3],'1남':[2,4],'2여':[1,2],'2남':[3,4],'3여':[2,3],'3남':[1,4]},relay:{all:[1,4]},tug:'b'};store('hanmadang-score',state);drawScore();
 });
-$('#reset').addEventListener('click',function(){state={};store('hanmadang-score',state);drawScore()});
+var rsArm=0;
+$('#reset').addEventListener('click',function(){
+  if(remote){
+    if(!rsArm){rsArm=1;this.textContent='정말 초기화? 한 번 더 누르세요';setTimeout(function(){rsArm=0;$('#reset').textContent='전체 초기화'},4000);return}
+    rsArm=0;this.textContent='전체 초기화';
+    pending++;call({pw:pw,op:'reset'}).then(function(d){pending--;applyRemote(d)}).catch(function(){pending--});
+  }else{state={};store('hanmadang-score',state);drawScore()}
+});
+if(remote){
+  $('#editbar').hidden=false;$('#scoresub').textContent='실시간 점수입니다. 편집은 비밀번호가 있는 담당자만 할 수 있습니다';
+  $('#editBtn').addEventListener('click',function(){
+    if(canEdit)setEdit(false);else{$('#pwform').hidden=!$('#pwform').hidden;$('#pwerr').textContent='';if(!$('#pwform').hidden)$('#pw').focus()}
+  });
+  $('#pwform').addEventListener('submit',function(ev){
+    ev.preventDefault();var v=$('#pw').value;if(!v)return;
+    $('#pwerr').textContent='확인 중…';
+    call({pw:v,op:'auth'}).then(function(d){
+      if(d&&d.ok){pw=v;$('#pw').value='';try{sessionStorage.setItem('hm-pw',v)}catch(e){}setEdit(true);applyRemote(d)}
+      else $('#pwerr').textContent='비밀번호가 맞지 않습니다';
+    }).catch(function(){$('#pwerr').textContent='연결하지 못했습니다. 잠시 후 다시 시도하세요'});
+  });
+  var saved='';try{saved=sessionStorage.getItem('hm-pw')||''}catch(e){}
+  if(saved)call({pw:saved,op:'auth'}).then(function(d){if(d&&d.ok){pw=saved;setEdit(true);applyRemote(d)}}).catch(function(){});
+  setInterval(poll,5000);document.addEventListener('visibilitychange',poll);
+}
 drawScore();
+if(remote)poll();
 
 /* roles */
 var R=[
