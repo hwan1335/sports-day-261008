@@ -214,11 +214,31 @@ footer{padding-bottom:110px}
 .editbar.on .mode{background:var(--track);border-color:var(--track);color:#fff}
 .editbar .small{flex:1 1 auto}
 .editbar button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 14px;font-size:.88rem;font-weight:700}
-.editbar input{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 10px;font:inherit;width:150px;min-width:0}
+.editbar input{-webkit-text-security:disc;text-security:disc;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 10px;font:inherit;width:150px;min-width:0}
 .editbar form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .err{color:var(--crit);font-size:.84rem}
 .pick button:disabled,.rk button:disabled{cursor:default}
 .board.ro .pick button:not([aria-pressed="true"]),.board.ro .rk button:not(.b):not(.w){opacity:.55}
+
+.seg.names button{padding:6px 14px}
+.seg .sep{width:1px;background:var(--line);margin:2px 4px}
+.me{margin-bottom:6px}
+.me .mh{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.me .mh h3{font-family:var(--f-display);font-weight:400;font-size:1.5rem}
+.me .mh .small b{font-family:var(--f-num);font-size:1.1rem;color:var(--ink)}
+.me .empty{color:var(--muted);font-size:.92rem}
+.me .sect{font-size:.76rem;letter-spacing:.08em;color:var(--muted);margin:14px 0 6px;font-weight:700}
+.mt{display:grid;grid-template-columns:104px minmax(0,1fr);gap:4px 14px;padding:10px 0;border-top:1px solid var(--line)}
+.mt:first-of-type{border-top:0}
+.mt .tm{font-family:var(--f-num);font-weight:700;font-size:1.05rem;line-height:1.3}
+.mt .tm small{display:block;font-weight:500;color:var(--muted);font-size:.85rem}
+.mt .tm.all{color:var(--track);font-size:.95rem}
+.mt .tt{font-weight:700}
+.mt .rr2{font-size:.9rem}
+.mt .pp2{font-size:.82rem;color:var(--muted)}
+.props{display:flex;flex-wrap:wrap;gap:6px}
+.props span{background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:0 10px;font-size:.84rem}
+@media (max-width:480px){.mt{grid-template-columns:78px minmax(0,1fr);gap:4px 10px}}
 /* people */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
 .panel h3{margin-bottom:10px}
@@ -351,7 +371,7 @@ footer{padding-block:36px 48px;color:var(--muted);font-size:.82rem}
       <span class="mode" id="mode">조회 전용</span>
       <span class="small" id="sync"></span>
       <button type="button" id="editBtn">점수 편집</button>
-      <form id="pwform" hidden><input type="password" id="pw" placeholder="편집 비밀번호" autocomplete="off" aria-label="편집 비밀번호"><button type="submit">확인</button><span class="err" id="pwerr"></span></form>
+      <form id="pwform" hidden><input type="text" id="pw" placeholder="편집 비밀번호" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="편집 비밀번호"><button type="submit">확인</button><span class="err" id="pwerr"></span></form>
     </div>
     <div class="rope">
       <div class="score-n b num"><small>청팀</small><span id="sb">0</span></div>
@@ -390,6 +410,11 @@ footer{padding-block:36px 48px;color:var(--muted);font-size:.82rem}
 
 <section id="people">
   <div class="sec-head"><h2>담당 업무와 도우미</h2><span class="sub">행사 운영을 맡은 선생님과 학생 도우미</span></div>
+  <div class="gaphead" style="margin-top:0"><h3>내 업무 확인</h3><span class="small">이름을 누르면 시간 순서로 정리해 보여 줍니다</span></div>
+  <div class="seg" id="mechips" role="group" aria-label="선생님 이름 선택"></div>
+  <div class="panel me" id="mepanel" aria-live="polite"></div>
+
+  <div class="gaphead"><h3>전체 담당 업무</h3><span class="small">계획서의 담당업무 분장</span></div>
   <div class="roles" id="roles"></div>
 
   <div class="gaphead"><h3>종목별 세부 업무</h3><span class="small">심판, 진행, 기록 담당</span></div>
@@ -742,6 +767,69 @@ var cb=HP.filter(function(p){return p.team==='b'}).length;
 $('#hcount').innerHTML='<span>청팀 <b>'+cb+'</b></span><span>백팀 <b>'+(HP.length-cb)+'</b></span><span>1학년 <b>'+HP.filter(function(p){return p.g===1}).length+'</b></span><span>2학년 <b>'+HP.filter(function(p){return p.g===2}).length+'</b></span><span>3학년 <b>'+HP.filter(function(p){return p.g===3}).length+'</b></span>';
 $('#hfilter').addEventListener('click',function(ev){var b=ev.target.closest('button');if(!b)return;hg=+b.dataset.g;Array.prototype.forEach.call(this.children,function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});drawH()});
 $('#hq').addEventListener('input',drawH);drawH();
+
+
+/* 내 업무 확인 */
+var TEA=['정철환','임성훈','이성은','최혜경','홍은미','강정아','김유경','박수정'];
+var OTH=['교장','교감','행정실장','교무부','체육교사','각 반 담임'];
+var ALLD=null;
+var T=[
+ {w:['교장'],t:'대회장',r:'행사 총괄'},
+ {w:['교감','행정실장'],t:'부대회장',r:'대회장을 도와 행사 운영'},
+ {w:['임성훈'],t:'진행',r:'개·폐회식 및 경기 진행',x:'행사 프로그램'},
+ {w:['이성은'],t:'방송',r:'방송 준비',x:'마이크'},
+ {w:['최혜경'],t:'종합 득점판',r:'득점판 기록',x:'화이트보드, 필기구'},
+ {w:['박수정'],t:'보건',r:'환자 응급치료 (본부석 보건교사)',x:'구급약품'},
+ {w:['교무부'],t:'본부석 준비',r:'본부석 정돈',x:'탁자, 의자'},
+ {w:['정철환'],t:'경기 심판·진행요원',r:'각 경기 진행 및 질서 유지',x:'호각, 선수 명단, 프로그램'},
+ {s:540,e:550,w:['교장','교감','체육교사'],t:'생활 안전교육 · 개회식 · 준비운동',r:'개회 선언, 개회사',p:'운동장'},
+ {s:540,e:550,w:['임성훈'],t:'개회식',r:'개회식 진행',p:'운동장',x:'행사 프로그램'},
+ {s:540,e:550,w:['이성은'],t:'개회식',r:'방송 음향',p:'운동장',x:'마이크'},
+ {s:550,e:570,w:['정철환'],t:'셔틀런 (준비운동)',r:'경기 진행 (체육활동 도우미와 함께)',p:'운동장',x:'셔틀런 음원, 스피커'},
+ {s:550,e:570,w:['각 반 담임'],t:'좌석배치',r:'지정 장소로 학생 인솔, 질서 유지',p:'지정 장소'},
+ {s:570,e:600,w:['정철환'],t:'단거리 달리기',r:'진행, 학생 질서 유지',p:'운동장',x:'신호총, 기록지'},
+ {s:570,e:600,w:['홍은미','강정아'],t:'단거리 달리기',r:'순위 선정(기록), 결과 취합, 운동장 정리',p:'운동장',x:'기록지'},
+ {s:600,e:650,w:['정철환'],t:'축구(남)',r:'심판',p:'운동장',x:'축구공, 팀조끼, 초시계, 호각'},
+ {s:650,e:700,w:['정철환'],t:'발야구(여)',r:'심판',p:'운동장',x:'배구공, 접시콘, 점수판, 호각, 베이스'},
+ {s:700,e:750,w:['정철환'],t:'배구(남)',r:'심판',p:'체육관',x:'배구공, 네트, 팀조끼, 호각, 초시계'},
+ {s:810,e:860,w:['정철환'],t:'피구(여)',r:'심판, 학생 질서 유지, 결과 취합',p:'체육관',x:'피구공, 초시계, 호각'},
+ {s:860,e:880,w:['정철환'],t:'줄다리기',r:'진행, 학생 질서 유지, 기록 측정, 결과 취합',p:'운동장',x:'신호총, 기록지, 줄다리기용 줄, 장갑'},
+ {s:860,e:880,w:['임성훈'],t:'줄다리기',r:'기록',p:'운동장',x:'기록지'},
+ {s:880,e:900,w:['정철환'],t:'이어 달리기',r:'총괄(신호총), 1출발점, 승부 판정',p:'운동장',x:'신호총, 배턴, 기록지, 팀조끼'},
+ {s:880,e:900,w:['최혜경'],t:'이어 달리기',r:'2출발점',p:'운동장',x:'신호총, 배턴, 팀조끼'},
+ {s:880,e:900,w:['임성훈','이성은'],t:'이어 달리기',r:'결승라인 준비',p:'운동장'},
+ {s:880,e:900,w:['김유경','홍은미','강정아'],t:'이어 달리기',r:'기록',p:'운동장',x:'기록지'},
+ {s:900,e:910,w:['교장'],t:'폐회식',r:'폐회 진행, 폐회사',p:'운동장',x:'상장'},
+ {s:900,e:910,w:['임성훈'],t:'폐회식',r:'폐회식 진행',p:'운동장'},
+ {s:900,e:910,w:['교무부'],t:'폐회식',r:'시상 (시상계)',p:'운동장',x:'상장 및 시상품'},
+ {s:910,e:null,w:['각 반 담임'],t:'환경미화 활동 및 종례',r:'질서 유지, 청소 지도',p:'각 교실·구역',x:'청소용구'}
+];
+function fm(x){var h=Math.floor(x/60),mi=x%60;return (h<10?'0':'')+h+':'+(mi<10?'0':'')+mi}
+function drawMe(name){
+  var P=$('#mepanel');
+  if(!name){P.innerHTML='<p class="empty">위에서 이름을 누르면 담당 업무가 여기에 나타납니다.</p>';return}
+  var L=T.filter(function(x){return x.w.indexOf(name)>-1});
+  var all=L.filter(function(x){return x.s==null}),tm=L.filter(function(x){return x.s!=null}).sort(function(a,b){return a.s-b.s});
+  var props={};L.forEach(function(x){if(x.x)x.x.split(/,\s*/).forEach(function(p){props[p]=1})});
+  var h='<div class="mh"><h3>'+esc(name)+(TEA.indexOf(name)>-1?' 선생님':'')+'</h3><span class="small">시간별 업무 <b>'+tm.length+'</b>건'+(all.length?' · 행사 전체 담당 <b>'+all.length+'</b>건':'')+(tm.length?' · '+fm(tm[0].s)+' ~ '+(tm[tm.length-1].e?fm(tm[tm.length-1].e):'종례')+'':'')+'</span></div>';
+  if(all.length){h+='<div class="sect">행사 전체</div>'+all.map(function(x){return '<div class="mt"><div class="tm all">행사 내내</div><div><div class="tt">'+esc(x.t)+'</div><div class="rr2">'+esc(x.r)+'</div>'+(x.x?'<div class="pp2">준비물 '+esc(x.x)+'</div>':'')+'</div></div>'}).join('')}
+  if(tm.length){h+='<div class="sect">시간 순서</div>'+tm.map(function(x){return '<div class="mt"><div class="tm">'+fm(x.s)+(x.e?'<small>~ '+fm(x.e)+'</small>':'<small>이후</small>')+'</div><div><div class="tt">'+esc(x.t)+(x.p?' <span class="chip place '+(x.p==='체육관'?'gym':(x.p==='운동장'?'field':''))+'">'+esc(x.p)+'</span>':'')+'</div><div class="rr2">'+esc(x.r)+'</div>'+(x.x?'<div class="pp2">준비물 '+esc(x.x)+'</div>':'')+'</div></div>'}).join('')}
+  var pk=Object.keys(props);
+  if(pk.length)h+='<div class="sect">준비물 모아보기</div><div class="props">'+pk.map(function(p){return '<span>'+esc(p)+'</span>'}).join('')+'</div>';
+  if(!L.length)h+='<p class="empty">계획서에 등록된 업무가 없습니다.</p>';
+  P.innerHTML=h;
+}
+var meSel=null;try{meSel=localStorage.getItem('hm-me')}catch(e){}
+function drawChips(){
+  $('#mechips').innerHTML=TEA.map(function(n){return '<button type="button" data-n="'+esc(n)+'" aria-pressed="'+(n===meSel)+'">'+esc(n)+'</button>'}).join('')+'<span class="sep"></span>'+OTH.map(function(n){return '<button type="button" data-n="'+esc(n)+'" aria-pressed="'+(n===meSel)+'">'+esc(n)+'</button>'}).join('');
+  drawMe(meSel);
+}
+$('#mechips').addEventListener('click',function(ev){
+  var b=ev.target.closest('button');if(!b)return;
+  meSel=meSel===b.dataset.n?null:b.dataset.n;try{if(meSel)localStorage.setItem('hm-me',meSel);else localStorage.removeItem('hm-me')}catch(e){}
+  drawChips();
+});
+drawChips();
 
 /* ceremony etc */
 $('#open').innerHTML=['개식 선언','국민의례','대회사','선수 대표 선서','경기 안내 및 준비운동','선수단 퇴장'].map(function(x,i){return '<li><b>'+(i+1)+'</b><span>'+x+'</span></li>'}).join('');
